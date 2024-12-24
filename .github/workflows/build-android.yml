@@ -36,8 +36,13 @@ jobs:
         echo "export ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
         echo "export PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools" >> $GITHUB_ENV
 
+    - name: Install depot_tools
+      run: |
+        git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+        export PATH=$PATH:$PWD/depot_tools
+
     - name: Clone ANGLE repository
-      run: git clone https://github.com/google/angle.git angle
+      run: gclient config --name change2dot --unmanaged https://chromium.googlesource.com/angle/angle.git
 
     - name: Prepare build environment
       working-directory: angle
