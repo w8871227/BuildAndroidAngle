@@ -33,13 +33,13 @@ jobs:
         uses: dawidd6/action-download-artifact@v2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          workflow: Build.yml # Replace with actual workflow filename
+          workflow: core.yml # 使用 core.yml 文件
           run_id: ${{ steps.list-runs.outputs.run_id }}
-          name: artifact-name # Replace with actual artifact name
+          name: artifact-name # 替换为实际的 artifact 名称
           path: ./artifacts
 
       - name: Upload Artifacts to this repository
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: LSPosed-artifacts
           path: ./artifacts
