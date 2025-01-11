@@ -1,60 +1,45 @@
-name: Build ANGLE for Android
+name: Download LSPosed Artifacts
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
+  download-artifacts:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout this repository
+        uses: actions/checkout@v2
 
-    - name: Set up JDK 11
-      uses: actions/setup-java@v2
-      with:
-        distribution: 'adopt'  # 可以是'adopt', 'zulu', 'temurin'等
-        java-version: '11'
-    
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y git python3 python3-pip wget openjdk-11-jdk
-        
-    - name: Set up Android SDK
-      run: |
-        wget https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip -O android-sdk.zip
-        mkdir -p $HOME/android-sdk/cmdline-tools
-        unzip android-sdk.zip -d $HOME/android-sdk/cmdline-tools
-        mv $HOME/android-sdk/cmdline-tools/cmdline-tools $HOME/android-sdk/cmdline-tools/latest
-        yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
-        $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-30"
+      - name: Checkout LSPosed repository
+        uses: actions/checkout@v2
+        with:
+          repository: JingMatrix/LSPosed
+          path: LSPosed
 
-    - name: Set up environment variables
-      run: |
-        echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools" >> $GITHUB_ENV
+      - name: List runs
+        id: list-runs
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const runs = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: 'JingMatrix',
+              repo: 'LSPosed',
+              per_page: 1,
+              status: 'success'
+            });
+            core.setOutput('run_id', runs.data.workflow_runs[0].id);
+          
+      - name: Download Artifacts
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: Build.yml # Replace with actual workflow filename
+          run_id: ${{ steps.list-runs.outputs.run_id }}
+          name: artifact-name # Replace with actual artifact name
+          path: ./artifacts
 
-    - name: Install depot_tools
-      run: |
-        git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-        echo "PATH=\$PATH:\$PWD/depot_tools" >> $GITHUB_ENV
-
-    - name: Clone ANGLE repository
-      run: gclient config --name angle --unmanaged https://chromium.googlesource.com/angle/angle.git
-
-    - name: Sync ANGLE repository
-      run: gclient sync
-
-    - name: Prepare build environment
-      working-directory: angle
-      run: python3 scripts/bootstrap.py
-
-    - name: Generate build files
-      working-directory: angle
-      run: python3 scripts/run.py gn gen out/Android --args="target_os=\"android\" is_debug=false"
-
-    - name: Build ANGLE
-      working-directory: angle
-      run: python3 scripts/run.py ninja -C out/Android
+      - name: Upload Artifacts to this repository
+        uses: actions/upload-artifact@v2
+        with:
+          name: LSPosed-artifacts
+          path: ./artifacts
